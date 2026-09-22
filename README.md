@@ -21,10 +21,10 @@ Create a `.env` file in the root directory:
 PORT=5000
 MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/my_portfolio?retryWrites=true&w=majority
 JWT_SECRET=your_jwt_secret_key
-ADMIN_USERNAME=shahreyartonmoy001@gmail.com
-ADMIN_PASSWORD=Shahreyar#001
+ADMIN_USERNAME=
+ADMIN_PASSWORD=
 IMGBB_API_KEY=your_imgbb_key
-CLIENT_URL=https://shahreyar-tonmoy.vercel.app
+CLIENT_URL=
 ```
 
 ### 3. Seed Initial Data
