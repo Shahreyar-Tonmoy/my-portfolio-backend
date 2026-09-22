@@ -57,6 +57,16 @@ const staticUploadsDir = isVercel
   : path.join(__dirname, 'uploads');
 app.use('/uploads', express.static(staticUploadsDir));
 
+// Auto-connect database for serverless requests
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Health Check
 app.get('/api/health', (req, res) => {
   res.json({
@@ -86,15 +96,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Auto-connect database for serverless requests
-app.use(async (req, res, next) => {
-  try {
-    await connectDB();
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
+
 
 // Start Server & Connect Database (Standard Node environment)
 const startServer = async () => {
