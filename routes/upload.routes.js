@@ -5,6 +5,7 @@ import FormData from 'form-data';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import os from 'os';
 import { protect } from '../middleware/auth.middleware.js';
 import Setting from '../models/Setting.js';
 import Profile from '../models/Profile.js';
@@ -13,14 +14,29 @@ const router = express.Router();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const resumeUploadDir = path.join(__dirname, '..', 'uploads', 'resumes');
-const imageUploadDir = path.join(__dirname, '..', 'uploads', 'images');
+const isVercel = Boolean(process.env.VERCEL);
 
-if (!fs.existsSync(resumeUploadDir)) {
-  fs.mkdirSync(resumeUploadDir, { recursive: true });
+const resumeUploadDir = isVercel
+  ? path.join(os.tmpdir(), 'uploads', 'resumes')
+  : path.join(__dirname, '..', 'uploads', 'resumes');
+const imageUploadDir = isVercel
+  ? path.join(os.tmpdir(), 'uploads', 'images')
+  : path.join(__dirname, '..', 'uploads', 'images');
+
+try {
+  if (!fs.existsSync(resumeUploadDir)) {
+    fs.mkdirSync(resumeUploadDir, { recursive: true });
+  }
+} catch (err) {
+  console.warn('[Storage Notice] resumeUploadDir:', err.message);
 }
-if (!fs.existsSync(imageUploadDir)) {
-  fs.mkdirSync(imageUploadDir, { recursive: true });
+
+try {
+  if (!fs.existsSync(imageUploadDir)) {
+    fs.mkdirSync(imageUploadDir, { recursive: true });
+  }
+} catch (err) {
+  console.warn('[Storage Notice] imageUploadDir:', err.message);
 }
 
 // 1. Configure memory storage for uploaded images (ImgBB)

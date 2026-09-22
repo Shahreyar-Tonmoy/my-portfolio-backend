@@ -16,16 +16,25 @@ import settingsRoutes from './routes/settings.routes.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import os from 'os';
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const isVercel = Boolean(process.env.VERCEL);
 
-// Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, 'uploads', 'resumes');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+// Ensure uploads directory exists safely
+const uploadsDir = isVercel
+  ? path.join(os.tmpdir(), 'uploads', 'resumes')
+  : path.join(__dirname, 'uploads', 'resumes');
+
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+} catch (err) {
+  console.warn('[Storage Notice] uploadsDir:', err.message);
 }
 
 const app = express();
@@ -43,7 +52,10 @@ app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
 // Serve static uploaded assets
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const staticUploadsDir = isVercel
+  ? path.join(os.tmpdir(), 'uploads')
+  : path.join(__dirname, 'uploads');
+app.use('/uploads', express.static(staticUploadsDir));
 
 // Health Check
 app.get('/api/health', (req, res) => {
