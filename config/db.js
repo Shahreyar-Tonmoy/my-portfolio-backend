@@ -3,6 +3,9 @@ import mongoose from 'mongoose';
 let isConnected = false;
 
 export const connectDB = async () => {
+  if (isConnected && mongoose.connection.readyState === 1) {
+    return true;
+  }
   const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/my_portfolio';
 
   try {

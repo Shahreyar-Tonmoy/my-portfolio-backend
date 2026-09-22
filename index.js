@@ -74,7 +74,13 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start Server & Connect Database
+// Auto-connect database for serverless requests
+app.use(async (req, res, next) => {
+  await connectDB();
+  next();
+});
+
+// Start Server & Connect Database (Standard Node environment)
 const startServer = async () => {
   const dbConnected = await connectDB();
   if (dbConnected) {
@@ -91,4 +97,8 @@ const startServer = async () => {
   });
 };
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export default app;
