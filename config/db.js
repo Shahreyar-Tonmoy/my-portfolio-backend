@@ -2,34 +2,62 @@ import mongoose from 'mongoose';
 
 let isConnected = false;
 
+/**
+ * Builds the MongoDB connection string dynamically from environment variables
+ */
+const getMongoURI = () => {
+  // 1. Prefer explicit full URI if provided
+  if (process.env.MONGODB_URI) {
+    return process.env.MONGODB_URI.trim();
+  }
+
+  // 2. Build dynamically from credentials
+  const user = process.env.DB_USER;
+  const password = process.env.DB_PASSWORD ? encodeURIComponent(process.env.DB_PASSWORD) : '';
+  const host = process.env.DB_HOST;
+  const dbName = process.env.DB_NAME || 'my_portfolio';
+  const appName = process.env.DB_APP_NAME ? `?appName=${process.env.DB_APP_NAME}` : '';
+
+  if (user && password && host) {
+    return `mongodb+srv://${user}:${password}@${host}/${dbName}${appName}`;
+  }
+
+  // 3. Fallback to default local connection
+  return `mongodb://127.0.0.1:27017/${dbName}`;
+};
+
 export const connectDB = async () => {
   if (isConnected && mongoose.connection.readyState === 1) {
     return true;
   }
-  // const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/my_portfolio';
-  const uri = process.env.MONGODB_URI ;
+
+  const uri = getMongoURI();
+  const dbName = process.env.DB_NAME || 'my_portfolio';
+  const localFallbackUri = `mongodb://127.0.0.1:27017/${dbName}`;
 
   try {
     const conn = await mongoose.connect(uri, {
       serverSelectionTimeoutMS: 3000,
     });
     isConnected = true;
-    console.log(`[MongoDB] Connected successfully to host: ${conn.connection.host}`);
+    console.log(`[MongoDB] Connected successfully to host: ${conn.connection.host} (DB: ${conn.connection.name})`);
     return true;
   } catch (error) {
-    if (uri !== 'mongodb://127.0.0.1:27017/my_portfolio') {
+    // If remote connection failed, attempt local fallback
+    if (uri !== localFallbackUri) {
       try {
-        console.log('[MongoDB] Remote URI unavailable, attempting local MongoDB (127.0.0.1:27017)...');
-        const localConn = await mongoose.connect('mongodb://127.0.0.1:27017/my_portfolio', {
+        console.log(`[MongoDB] Remote URI unavailable, attempting local MongoDB (${localFallbackUri})...`);
+        const localConn = await mongoose.connect(localFallbackUri, {
           serverSelectionTimeoutMS: 2000,
         });
         isConnected = true;
-        console.log(`[MongoDB] Connected successfully to local host: ${localConn.connection.host}`);
+        console.log(`[MongoDB] Connected successfully to local host: ${localConn.connection.host} (DB: ${localConn.connection.name})`);
         return true;
       } catch {
-        // Continue to fallback
+        // Fallthrough to warning block
       }
     }
+
     isConnected = false;
     console.warn(`[MongoDB Notice] Database connection not established (${error.message}).`);
     console.warn(`[MongoDB Notice] Server is running with auto-sync in-memory caching for seamless local preview.`);
