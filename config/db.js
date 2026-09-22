@@ -35,14 +35,25 @@ export const connectDB = async () => {
   const dbName = process.env.DB_NAME || 'my_portfolio';
   const localFallbackUri = `mongodb://127.0.0.1:27017/${dbName}`;
 
+  if (process.env.VERCEL && uri.includes('127.0.0.1')) {
+    console.error('[MongoDB Error] VERCEL environment detected but no valid MONGODB_URI provided. Please add MONGODB_URI to Vercel Environment Variables.');
+    // We could throw here, but we will let it fail fast.
+  }
+
   try {
     const conn = await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 3000,
+      serverSelectionTimeoutMS: 10000, // Increased for serverless cold starts
     });
     isConnected = true;
     console.log(`[MongoDB] Connected successfully to host: ${conn.connection.host} (DB: ${conn.connection.name})`);
     return true;
   } catch (error) {
+    if (process.env.VERCEL) {
+      console.error(`[MongoDB Error] Failed to connect on Vercel: ${error.message}`);
+      console.error(`[MongoDB Error] This is usually caused by MongoDB Atlas IP Whitelisting. Ensure you have added 0.0.0.0/0 (Allow Access from Anywhere) in your MongoDB Atlas Network Access settings.`);
+      throw new Error(`Database connection failed: ${error.message}. Please check MongoDB IP Whitelist (add 0.0.0.0/0) and MONGODB_URI in Vercel.`);
+    }
+    
     // If remote connection failed, attempt local fallback
     if (uri !== localFallbackUri) {
       try {

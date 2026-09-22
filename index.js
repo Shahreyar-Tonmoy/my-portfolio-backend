@@ -88,8 +88,12 @@ app.use((err, req, res, next) => {
 
 // Auto-connect database for serverless requests
 app.use(async (req, res, next) => {
-  await connectDB();
-  next();
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
 // Start Server & Connect Database (Standard Node environment)
